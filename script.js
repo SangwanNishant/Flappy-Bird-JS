@@ -33,6 +33,7 @@ const bird = {
     gravity: 0.3,
     lift: -5,
     velocity: 0,
+    termainalVelocity: 0.4
 };
 
 // Pipe properties
@@ -45,6 +46,7 @@ let lowerPipes = [];
 // Game state
 let isGameOver = false;
 let  score = 0;
+let gameFrameId
 
 function init() {
     // Reset bird properties
@@ -89,6 +91,11 @@ function update() {
 
     // Bird physics
     bird.velocity += bird.gravity;
+    // Limit velocity to terminal velocity (to prevent bird falling too fast)
+    if (bird.velocity > bird.terminalVelocity) {
+        bird.velocity = bird.terminalVelocity;
+    }
+
     bird.y += bird.velocity;
 
     // Prevent the bird from going off the screen
@@ -142,17 +149,18 @@ function checkCollisions() {
     });
 }
 
-// Handle game over
+// gameover case
 function gameOver() {
     isGameOver = true;
     showGameOverModal();
+    cancelAnimationFrame(gameFrameId); // Stop the game loop when game over
 }
 
 // Show the game over modal and score
 function showGameOverModal() {
     const modal = document.getElementById('gameOverModal');
     const scoreElement = document.getElementById('finalScore');
-    scoreElement.textContent = `Your Score: ${Math.floor(score)}`;
+    scoreElement.textContent = `${Math.floor(score)}`;
     $('#gameOverModal').modal('show');
 }
 
@@ -163,9 +171,11 @@ function hideGameOverModal() {
 
 // Handle game restart
 function restartGame() {
-    hideGameOverModal();
-    init();  
-    loop();
+    hideGameOverModal(); // Hide the modal
+    init();  // Reset game state (reset bird, pipes, score)
+    console.log(`Bird Gravity: ${bird.gravity}, Bird Y Position: ${bird.y}`);
+
+    
 }
 
 // Draw bird, pipes, and background
@@ -206,7 +216,7 @@ function draw() {
 function loop() {
     update();
     draw();
-    requestAnimationFrame(loop); 
+    gameFrameId = requestAnimationFrame(loop); 
 }
 
 // Handle bird jump
