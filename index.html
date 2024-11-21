@@ -5,9 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flappy Bird</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Add Bootstrap CSS (for styles) -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Add Bootstrap JS (for modals, etc.) -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     <script src="script.js"></script>
+    <!-- Game Over Modal -->
+    <div class="modal fade" id="gameOverModal" tabindex="-1" role="dialog" aria-labelledby="gameOverModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="gameOverModalLabel">Game Over</h5>
+            </div>
+            <div class="modal-body">
+            <p id="finalScore">Your Score: 0</p>
+            </div>
+            <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="restartGame()">Restart</button>
+            </div>
+        </div>
+        </div>
+    </div>
+  
 </body>
 </html>

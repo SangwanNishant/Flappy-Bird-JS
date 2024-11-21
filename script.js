@@ -1,128 +1,240 @@
-const canvas = document.getElementById("gameCanvas")
-document.body.appendChild(canvas)
+const canvas = document.createElement("canvas");
 const ctx = canvas.getContext("2d");
+document.body.appendChild(canvas);
 
-// Function to resize canvas to fit the window
+// Function to resize the canvas and fill the screen
 function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
 
-// Initial canvas size
+// Initialize canvas and listen for resize
+window.addEventListener("resize", resizeCanvas);
 resizeCanvas();
 
-// Update canvas size on window resize
-window.addEventListener('resize', () => {
-    resizeCanvas();
-});
+// Loading assets
+const birdImg = new Image();
+birdImg.src = "assets/bird.png";
 
-// setting game variables
+const bgImg = new Image();
+bgImg.src = "assets/bg.png";
 
-let birdY = 140
-let birdVelocity = 0
-let gravity = 0.2
-let isGameOver = false
+const upperPipeImg = new Image();
+upperPipeImg.src = "assets/upperPipe.png";
 
-// drawing a basic bird object
+const lowerPipeImg = new Image();
+lowerPipeImg.src = "assets/lowerPipe.png";
 
-function drawBird(){
-    ctx.fillStyle = "lightblue"
-    ctx.fillRect(200,birdY,30,30) // bird is square here 30x30 and 50 birdY are position
+// Bird properties
+const bird = {
+    x: 100,
+    y: 100,
+    size: 30,
+    gravity: 0.3,
+    lift: -5,
+    velocity: 0,
+};
+
+// Pipe properties
+const pipeWidth = 75;
+const gapHeight = 150;
+const pipeSpeed = 3;
+let upperPipes = [];
+let lowerPipes = [];
+
+// Game state
+let isGameOver = false;
+let  score = 0;
+
+function init() {
+    // Reset bird properties
+    bird.y = 100;  // Set bird's vertical position to the starting position
+    bird.velocity = 0;  // Reset bird's velocity to 0
+    bird.gravity = 0.3;  // Reset gravity (optional if it's being changed dynamically)
+    bird.lift = -5;  // Reset lift (optional if it's being changed dynamically)
+  
+    // Reset pipes and score
+    upperPipes = [];
+    lowerPipes = [];
+    score = 0;  // Reset score to 0
+  
+    // Reset game state
+    isGameOver = false;  // Game over flag is reset
 }
 
-// working on pipes
 
-let pipes=[]
-let pipeWidth = 50
-let gapHeight = 150
-let pipeSpeed = 2
+// Spawn new pipes
+function spawnPipe() {
+    const topHeight = Math.random() * (canvas.height - gapHeight - 200) + 100;
+    const bottomY = topHeight + gapHeight;
 
-// generate pipes
-function generatePipe(){
-    const topHeight = Math.random() * (canvas.height - gapHeight - 200) + 50;
-    pipes.push({
+    upperPipes.push({
         x: canvas.width,
-        top: topHeight,
-        bottom: topHeight + gapHeight,
+        y: 0,
+        width: pipeWidth,
+        height: topHeight,
+    });
+
+    lowerPipes.push({
+        x: canvas.width,
+        y: bottomY,
+        width: pipeWidth,
+        height: canvas.height - bottomY,
     });
 }
 
-// Draw Pipes
-function drawPipes() {
-    ctx.fillStyle = 'green';
-    pipes.forEach(pipe => {
-        ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top); // Top pipe
-        ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom); // Bottom pipe
-    });
-}
+// Update bird and pipes
+function update() {
+    if (isGameOver) return;
 
-// Update Pipes
-function updatePipes() {
-    pipes.forEach(pipe => {
-        pipe.x -= pipeSpeed;
+    // Bird physics
+    bird.velocity += bird.gravity;
+    bird.y += bird.velocity;
 
-        // Check for collision
-        if (50 + 30 > pipe.x && 50 < pipe.x + pipeWidth &&
-            (birdY < pipe.top || birdY + 30 > pipe.bottom)) {
-            isGameOver = true;
-        }
-    });
+    // Prevent the bird from going off the screen
+    if (bird.y + bird.size > canvas.height || bird.y < 0) {
+        gameOver();
+    }
+
+    // Update pipes
+    upperPipes.forEach(pipe => (pipe.x -= pipeSpeed));
+    lowerPipes.forEach(pipe => (pipe.x -= pipeSpeed));
 
     // Remove pipes that go off-screen
-    pipes = pipes.filter(pipe => pipe.x + pipeWidth > 0);
-}
+    upperPipes = upperPipes.filter(pipe => pipe.x + pipeWidth > 0);
+    lowerPipes = lowerPipes.filter(pipe => pipe.x + pipeWidth > 0);
 
-// Add pipe generation every 2 seconds
-setInterval(generatePipe, 2000);
+    // Spawn new pipes
+    if (upperPipes.length === 0 || upperPipes[upperPipes.length - 1].x < canvas.width - 300) {
+        spawnPipe();
+    }
 
-
-// update game state
-
-function update(){
-    if(!isGameOver){
-        birdVelocity += gravity
-        birdY += birdVelocity
-
-        // check if bird fell of the canvas
-        if(birdY + 30 > canvas.height){
-            isGameOver = true
+      // Check for score
+      upperPipes.forEach(pipe => {
+        if (pipe.x + pipeWidth < bird.x && !pipe.passed) {
+            pipe.passed = true;
+            score += 50;
         }
+    });
 
-    updatePipes()
 
-    }
-}  
-
-// draw bird
-
-function draw(){
-    ctx.clearRect(0,0,canvas.width,canvas.height)
-    drawBird()
-    drawPipes()
+    checkCollisions();
 }
 
-// GAME LOOP    
+// Check for collisions
+function checkCollisions() {
+    upperPipes.forEach(pipe => {
+        const isCollidingX = bird.x + bird.size > pipe.x && bird.x < pipe.x + pipe.width;
+        const isCollidingY = bird.y < pipe.height;
 
-function gameLoop(){
+        if (isCollidingX && isCollidingY) {
+            gameOver();
+        }
+    });
 
-    update()
-    draw()
-    if(!isGameOver){
-        requestAnimationFrame(gameLoop)
-    }else {
-        alert('Game Over! Refresh to try again.');
-    }
+    lowerPipes.forEach(pipe => {
+        const isCollidingX = bird.x + bird.size > pipe.x && bird.x < pipe.x + pipe.width;
+        const isCollidingY = bird.y + bird.size > pipe.y;
+
+        if (isCollidingX && isCollidingY) {
+            gameOver();
+        }
+    });
+}
+
+// Handle game over
+function gameOver() {
+    isGameOver = true;
+    showGameOverModal();
+}
+
+// Show the game over modal and score
+function showGameOverModal() {
+    const modal = document.getElementById('gameOverModal');
+    const scoreElement = document.getElementById('finalScore');
+    scoreElement.textContent = `Your Score: ${Math.floor(score)}`;
+    $('#gameOverModal').modal('show');
+}
+
+// Hide the game over modal
+function hideGameOverModal() {
+    $('#gameOverModal').modal('hide');
+}
+
+// Handle game restart
+function restartGame() {
+    hideGameOverModal();
+    init();  
+    loop();
+}
+
+// Draw bird, pipes, and background
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw background
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+
+    // Draw "Flappy Bird" text
+    ctx.font = "bold 50px Arial";  // Set font size and style
+    ctx.fillStyle = "white";  // Set text color
+    ctx.textAlign = "left";  // Align text to the left
+    ctx.textBaseline = "top";  // Align text to the top
+    ctx.fillText("Flappy Bird", 20, 20);  // Draw the text at coordinates (20, 20)
+
+    // Draw bird
+    ctx.drawImage(birdImg, bird.x, bird.y, bird.size, bird.size);
+
+    // Draw upper pipes
+    upperPipes.forEach(pipe => {
+        ctx.drawImage(upperPipeImg, pipe.x, pipe.y, pipe.width, pipe.height);
+    });
+
+    // Draw lower pipes
+    lowerPipes.forEach(pipe => {
+        ctx.drawImage(lowerPipeImg, pipe.x, pipe.y, pipe.width, pipe.height);
+    });
+
+     // Draw score
+     ctx.font = "bold 30px Arial";
+     ctx.fillText("Score: " + score, canvas.width - 180, 50);
 
 }
 
-gameLoop()
+// Main game loop
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop); 
+}
 
-// event listener for flap
-
-document.addEventListener('keydown',(e)=>{
-    if(e.code === 'Space'){
-        birdVelocity = -8
+// Handle bird jump
+window.addEventListener("keydown", e => {
+    if (e.code === "Space" && !isGameOver) {
+        bird.velocity = bird.lift;
     }
-})
+});
 
+// Handle bird double jump
+window.addEventListener("keydown", e => {
+    if (e.code === "KeyE" && !isGameOver) {
+        bird.velocity = bird.lift * 2;
+    }
+});
 
+window.addEventListener("touchstart", e => {
+    e.preventDefault(); // Prevents the default action of the touch event (e.g., scrolling)
+    if (!isGameOver) {
+        bird.velocity = bird.lift; // Makes the bird jump
+    }
+});
+
+// prevent scrolling on touch hold and move
+window.addEventListener("touchmove", e => {
+    e.preventDefault(); // Prevents touch move scrolling
+});
+
+// Start the game
+init();
+loop();
